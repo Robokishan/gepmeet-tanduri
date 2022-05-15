@@ -1,25 +1,68 @@
-version: "3"
+version: '3'
 services:
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - '5672:5672'
+      - '15672:15672'
     environment:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=admin
-    restart: "always"
+    restart: 'always'
+
   redis:
     image: docker.io/bitnami/redis:6.2
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
       - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
-      - "redis_data:/bitnami/redis/data"
-    restart: "always"
+      - 'redis_data:/bitnami/redis/data'
+    restart: 'always'
+
+  # mongo1:
+  #   hostname: mongo1
+  #   container_name: mongo1
+  #   image: mongo:4.4-focal
+  #   expose:
+  #     - 27017
+  #   ports:
+  #     - 27011:27017
+  #   restart: always
+  #   entrypoint: ['/usr/bin/mongod', '--bind_ip_all', '--replSet', 'rs0']
+  #   healthcheck:
+  #     test: test $$(echo "rs.initiate().ok || rs.slaveOk().ok || rs.status().ok" | mongo --quiet) -eq 1
+  #     interval: 10s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 40s
+  #   # volumes:
+  #   #   - 'mongodb_data:/bitnami/mongodb'
+
+  # mongo2:
+  #   hostname: mongo2
+  #   container_name: mongo2
+  #   image: mongo:4.4-focal
+  #   expose:
+  #     - 27017
+  #   ports:
+  #     - 27012:27017
+  #   restart: always
+  #   entrypoint: ['/usr/bin/mongod', '--bind_ip_all', '--replSet', 'rs0']
+
+  # mongo3:
+  #   hostname: mongo3
+  #   container_name: mongo3
+  #   image: mongo:4.4-focal
+  #   expose:
+  #     - 27017
+  #   ports:
+  #     - 27013:27017
+  #   restart: always
+  #   entrypoint: ['/usr/bin/mongod', '--bind_ip_all', '--replSet', 'rs0']
 
 volumes:
+  # mongodb_data:
   redis_data:
     driver: local
