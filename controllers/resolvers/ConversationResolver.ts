@@ -55,12 +55,23 @@ export class ConversationResolver {
     }
   }
 
+  // todo: add pagination
   @Authorized()
   @Query(() => [Conversation])
   async GetConversations(@Ctx() { em }: Context) {
-    return await em
+    return await em.getRepository(Conversation).find({}, { populate: true });
+  }
+
+  @Authorized()
+  @Query(() => Conversation)
+  async GetConversation(
+    @Arg('conversationid', () => String) conversationid: string,
+    @Ctx() { em }: Context
+  ) {
+    const data = await em
       .getRepository(Conversation)
-      .find({}, { populate: ['members'] });
+      .findOne({ id: conversationid }, { populate: true });
+    return data;
   }
 
   @Authorized()

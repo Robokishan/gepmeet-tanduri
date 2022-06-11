@@ -12,6 +12,8 @@ import {
   ApolloServerPluginLandingPageDisabled,
   ApolloServerPluginLandingPageGraphQLPlayground
 } from 'apollo-server-core';
+import httpServer from 'http';
+
 // local deps
 import Logger from './utils/logger';
 import { UserResolver } from './controllers/resolvers/UserResolver';
@@ -24,20 +26,21 @@ import { User } from './entities/User';
 import { Context } from './types/Context';
 import { customAuthChecker } from './utils/AuthCheker';
 import { __prod__ } from './utils/constant';
+import TanduriSocket from './modules/liveDhokla';
+import { startRabbit } from './client/rabbitmq';
 
 async function main() {
   // Create server
   const log = new Logger();
   const app = express();
 
-  const originList = [
-    'http://localhost:5050',
-    'http://localhost:5051',
-    'http://localhost:3000'
-  ];
+  const originList = ['http://localhost:3000'];
 
   if (process.env.NODE_ENV == 'development')
     originList.push('https://studio.apollographql.com');
+
+  // start rabbitmq connection
+  await startRabbit();
 
   // Construct a schema, using GraphQL schema language
   // make sure to provide the MongoDriver type hint
@@ -55,21 +58,17 @@ async function main() {
       ensureIndexes: true // defaults to false,
     });
   } catch (error) {
-    // setTimeout(async () => await startRabbit(handler), retryInterval);
-    // return;
     log.error(error);
     process.exit(1);
   }
 
   await orm.getSchemaGenerator().createSchema();
-  // await orm.em.getDriver().createCollections();
 
   const schema = await buildSchema({
     resolvers: [ConversationResolver, UserResolver], // add this,
     authChecker: customAuthChecker,
     authMode: 'null'
   });
-
   const server = new ApolloServer({
     schema,
     plugins: [
@@ -101,7 +100,11 @@ async function main() {
   });
 
   // Start listening
-  app.listen(config.PORT, function () {
+
+  const httpserver = httpServer.createServer(app);
+
+  TanduriSocket(httpserver, { cors: corsOptions });
+  httpserver.listen(config.PORT, function () {
     log.info(
       colors.green(
         '🚀  Listening with ' +

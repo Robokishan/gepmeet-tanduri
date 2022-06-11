@@ -11,6 +11,7 @@ import {
 } from 'type-graphql';
 import { LoginInput, RegistrationInput, User } from '../../entities/User';
 import { Context } from '../../types/Context';
+import { __prod__ } from '../../utils/constant';
 import {
   createAccessToken,
   generatePassword,
@@ -126,7 +127,6 @@ export class UserResolver {
         }
       };
     } catch (error) {
-      console.error(error);
       return {
         errors: [
           {
@@ -146,6 +146,16 @@ export class UserResolver {
     const userReposistory = em.getRepository(User);
     const user = await userReposistory.findOne({ email: options.email });
     try {
+      if (!user) {
+        return {
+          errors: [
+            {
+              field: 'email',
+              message: 'Somthing went wrong'
+            }
+          ]
+        };
+      }
       const { isValid } = await verifyPassword(options.password, user);
       if (isValid != true && user == null) {
         return {
@@ -157,14 +167,14 @@ export class UserResolver {
           ]
         };
       } else {
-        const accesstoken = createAccessToken(user);
+        const { token: accesstoken, expire } = createAccessToken(user);
 
         // NOTE: Make sure cookie params are properly set so that it can work with studio.apollographql.com
         res.cookie('token', accesstoken, {
           // expires: new Date(Date.now() + expiration),
           secure: true, // set to true if your using https
-          httpOnly: true,
-          maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
+          httpOnly: __prod__,
+          maxAge: expire,
           // httpOnly: true,
           // secure: true,
           sameSite: 'none'
