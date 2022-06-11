@@ -24,19 +24,26 @@ function generatePassword(password: string) {
   return bcrypt.hashSync(password, config.SALT_ROUNDS);
 }
 
-const createAccessToken = (user: any): string => {
-  return sign(
-    {
-      userId: user.id,
-      email: user.email,
-      user_name: user.user_name,
-      type: user.type
-    },
-    config.SECRET,
-    {
-      expiresIn: config.JWT_EXPIRATION
-    }
-  );
+interface TokenResponse {
+  token: string;
+  expire: number;
+}
+const createAccessToken = (user: any): TokenResponse => {
+  return {
+    token: sign(
+      {
+        userId: user.id,
+        email: user.email,
+        user_name: user.user_name,
+        type: user.type
+      },
+      config.SECRET,
+      {
+        expiresIn: config.JWT_EXPIRATION
+      }
+    ),
+    expire: config.JWT_EXPIRATION
+  };
 };
 
 export { verifyPassword, generatePassword, createAccessToken };

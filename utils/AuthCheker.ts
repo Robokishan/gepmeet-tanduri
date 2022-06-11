@@ -1,6 +1,32 @@
 import { AuthChecker } from 'type-graphql';
 import jwt from 'jsonwebtoken';
 import config from '../config/config';
+import Logger from './logger';
+
+const log = new Logger();
+
+interface TokenValidityResponse {
+  isValidToken: boolean;
+  decoded: any;
+}
+
+export const validateToken = (token: string): TokenValidityResponse => {
+  let isValidToken = false;
+  let decoded = null;
+  try {
+    decoded = jwt.verify(token, config.SECRET) as any;
+    //   no need it is just to check if user has changed password nor not
+    //   const user = await Users.findOne({ id: decoded.userId });
+    //   req.userId = decoded.userId;
+
+    isValidToken = true;
+  } catch (Err) {
+    log.error('Err', Err);
+    isValidToken = false;
+  }
+  return { isValidToken, decoded };
+};
+
 export const customAuthChecker: AuthChecker = async (
   { root, args, context, info },
   roles
@@ -24,25 +50,20 @@ export const customAuthChecker: AuthChecker = async (
       token = req.cookies.token;
     }
   } catch (error) {
-    console.error('auth error', error);
+    log.error('auth error', error);
   }
 
+  let isValidToken = false;
   if (token) {
-    try {
-      const decoded = jwt.verify(token, config.SECRET) as any;
-      //   no need it is just to check if user has changed password nor not
-      //   const user = await Users.findOne({ id: decoded.userId });
-      //   req.userId = decoded.userId;
-      (context as any).req = {
-        ...req,
-        userId: decoded.userId,
-        owner: decoded
-      };
-    } catch (Err) {
-      console.error('Err', Err);
-    }
+    const { isValidToken: _isValid, decoded } = validateToken(token);
+    isValidToken = _isValid;
+    (context as any).req = {
+      ...req,
+      userId: decoded.userId,
+      owner: decoded
+    };
   }
 
-  if (!!!token) throw new Error('Authorization error');
+  if (!token || !isValidToken) throw new Error('Authorization error');
   return !!token;
 };
