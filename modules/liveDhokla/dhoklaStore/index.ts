@@ -1,12 +1,14 @@
 import redis from '../../../client/redis';
 import { REDIS_KEY_SOCKET_PREFIX } from '../../../utils/constant';
+import { SessionDataType } from './types';
 
 // store uses redis aggresively if things goes down then choose nodejs memory to store room data
 const getDhoklaSessionKey = (socketId: string) =>
   REDIS_KEY_SOCKET_PREFIX + socketId;
 
 // second expire time
-const SECONDS_EXPIRE_TIME = 1 * 60 * 60 * 24; //1 day
+// const SECONDS_EXPIRE_TIME = 1 * 60 * 60 * 24; //1 day
+const SECONDS_EXPIRE_TIME = 1 * 60 * 5;
 
 // expire middlware to run always
 const middlware = (key: string) => {
@@ -15,7 +17,7 @@ const middlware = (key: string) => {
 
 export const saveSessiondata = async (
   socketId: string,
-  data: Record<string, unknown>
+  data: SessionDataType
 ) => {
   const key = getDhoklaSessionKey(socketId);
   await redis.set(key, JSON.stringify(data));
@@ -24,7 +26,7 @@ export const saveSessiondata = async (
 
 export const upsertSessionData = async (
   socketid: string,
-  data: Record<string, unknown>
+  data: SessionDataType
 ) => {
   const key = getDhoklaSessionKey(socketid);
   let upsert_data = await redis.get(key);
@@ -40,7 +42,9 @@ export const upsertSessionData = async (
   middlware(key);
 };
 
-export const getSessionData = async (socketId: string) => {
+export const getSessionData = async (
+  socketId: string
+): Promise<SessionDataType> => {
   const key = getDhoklaSessionKey(socketId);
   const data = await redis.get(key);
   middlware(key);

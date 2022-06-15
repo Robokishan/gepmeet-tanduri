@@ -174,7 +174,7 @@ export class UserResolver {
           // expires: new Date(Date.now() + expiration),
           secure: true, // set to true if your using https
           httpOnly: __prod__,
-          maxAge: expire,
+          maxAge: expire * 1000,
           // httpOnly: true,
           // secure: true,
           sameSite: 'none'
@@ -183,6 +183,7 @@ export class UserResolver {
           user: {
             name: user?.name,
             email: user?.email,
+            id: user?.id,
             token: {
               access_token: accesstoken,
               expires_in: (jwt.decode(accesstoken) as any).exp
