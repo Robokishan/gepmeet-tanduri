@@ -1,9 +1,11 @@
 import {
+  deleteUserPanchayatWorker,
   getNewPanchayatWorkers,
   getUserPanchayatWorker,
   saveUserPanchayatWorker
 } from '../../../modules/panchayat';
 import {
+  deleteSessionData,
   getSessionData,
   saveSessiondata
 } from '../../../modules/liveDhokla/dhoklaStore';
@@ -160,3 +162,26 @@ export async function mediaResume(
   _data: any,
   callback: any
 ) {}
+
+export async function handlerDisconnect(this: SocketRPCType, err: unknown) {
+  //  disconnect and cleanup function should be more clear
+  const sessionData = await getSessionData(this.id);
+  if (sessionData?.roomId && sessionData?.userId) {
+    const worker = await getUserPanchayatWorker(
+      sessionData.roomId,
+      sessionData.userId
+    );
+    if (worker) {
+      await deleteUserPanchayatWorker(
+        sessionData.roomId,
+        worker,
+        sessionData.userId
+      ); //delete room details
+      await this.rpcClient.sendCommand(MediaSoupCommand.disconnect, [
+        { sessionData }
+      ]);
+    }
+  }
+  if (this.rpcClient) await this.rpcClient.disconnect(); //disconnect rpc client
+  deleteSessionData(this.id); //remove session data
+}

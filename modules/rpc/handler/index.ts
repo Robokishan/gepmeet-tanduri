@@ -6,6 +6,7 @@ export interface HelperType {
 }
 
 export enum MediaSoupCommand {
+  disconnect = 'disconnect',
   getRouterRtpCapabilities = 'getRouterRtpCapabilities',
   createProducerTransport = 'createProducerTransport',
   connectProducerTransport = 'connectProducerTransport',

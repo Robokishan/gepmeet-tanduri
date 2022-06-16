@@ -14,6 +14,7 @@ import {
   createConsumerTransportHandler,
   createProducerTransportHandler,
   getRTPCapabilitiesHandler,
+  handlerDisconnect,
   mediaconsumeHandler,
   mediaproduceHandler,
   mediaResume,
@@ -82,24 +83,6 @@ export const CleanupSockerHandlers = (): SocketHandlerType[] => [
   },
   {
     eventName: 'disconnect',
-    handler: async function (this: SocketRPCType, err: unknown) {
-      //  disconnect and cleanup function should be more clear
-      const sessionData = await getSessionData(this.id);
-      if (sessionData?.roomId && sessionData?.userId) {
-        const worker = await getUserPanchayatWorker(
-          sessionData.roomId,
-          sessionData.userId
-        );
-        if (worker)
-          deleteUserPanchayatWorker(
-            sessionData.roomId,
-            worker,
-            sessionData.userId
-          ); //delete room details
-      }
-      if (this.rpcClient) await this.rpcClient.disconnect(); //disconnect rpc client
-      deleteSessionData(this.id); //remove session data
-      log.info('client disconnected', err, this.id);
-    }
+    handler: handlerDisconnect
   }
 ];
