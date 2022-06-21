@@ -7,12 +7,12 @@ import {
 } from '../../controllers/SocketHandler';
 
 import { SocketRPCType } from '../../utils/types';
-
+let io: SocketServer = null;
 const TanduriSocket = (
   httpServer: Server,
   options?: Partial<ServerOptions>
 ) => {
-  const io = new SocketServer(httpServer, { path: '/ws', ...options });
+  io = new SocketServer(httpServer, { path: '/ws', ...options });
 
   // server
   io.use((socket, next) => {
@@ -30,4 +30,4 @@ const TanduriSocket = (
   });
 };
 
-export default TanduriSocket;
+export { TanduriSocket, io };

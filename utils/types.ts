@@ -2,6 +2,8 @@ import { Socket } from 'socket.io';
 import AMQPRPCClient from '../modules/rpc/amqp-rpc/AMQPRPCClient';
 
 export enum MediaSoupSocket {
+  consumeUser = 'consumeUser',
+  newConsumer = 'newConsumer',
   listenConsumers = 'listenConsumers',
   startNegotiation = 'startNegotiation',
   roomAssigned = 'roomAssigned',

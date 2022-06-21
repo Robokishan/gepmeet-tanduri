@@ -1,33 +1,33 @@
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 import 'dotenv/config';
 // const deps
-import 'reflect-metadata';
 import { MikroORM } from '@mikro-orm/core';
 import { MongoDriver } from '@mikro-orm/mongodb';
-import { ApolloServer } from 'apollo-server-express';
-import colors from 'colors';
-import cors, { CorsOptions } from 'cors';
-import { buildSchema } from 'type-graphql';
 import {
   ApolloServerPluginLandingPageDisabled,
   ApolloServerPluginLandingPageGraphQLPlayground
 } from 'apollo-server-core';
+import { ApolloServer } from 'apollo-server-express';
+import colors from 'colors';
+import cors, { CorsOptions } from 'cors';
 import httpServer from 'http';
+import 'reflect-metadata';
+import { buildSchema } from 'type-graphql';
 
 // local deps
-import Logger from './utils/logger';
-import { UserResolver } from './controllers/resolvers/UserResolver';
-import { ConversationResolver } from './controllers/resolvers/ConversationResolver';
-import { Conversation } from './entities/Conversation';
+import { startRabbit } from './client/rabbitmq';
 import config from './config/config';
 import express from './config/express';
+import { ConversationResolver } from './controllers/resolvers/ConversationResolver';
+import { UserResolver } from './controllers/resolvers/UserResolver';
+import { Conversation } from './entities/Conversation';
 import { Permission } from './entities/Permission';
 import { User } from './entities/User';
+import { TanduriSocket } from './modules/liveDhokla';
 import { Context } from './types/Context';
 import { customAuthChecker } from './utils/AuthCheker';
 import { __prod__ } from './utils/constant';
-import TanduriSocket from './modules/liveDhokla';
-import { startRabbit } from './client/rabbitmq';
+import Logger from './utils/logger';
 
 async function main() {
   // Create server

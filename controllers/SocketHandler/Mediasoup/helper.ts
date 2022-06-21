@@ -1,11 +1,3 @@
-import {
-  deleteSessionData,
-  getSessionData
-} from '../../../modules/liveDhokla/dhoklaStore';
-import {
-  deleteUserPanchayatWorker,
-  getUserPanchayatWorker
-} from '../../../modules/panchayat';
 import Logger from '../../../utils/logger';
 import { MediaSoupSocket, SocketRPCType } from '../../../utils/types';
 import {
@@ -18,6 +10,7 @@ import {
   mediaconsumeHandler,
   mediaproduceHandler,
   mediaResume,
+  mediaUserConsumeHandler,
   startNegotiationHandler
 } from './handler';
 
@@ -69,6 +62,10 @@ export const MediasoupSocketHandlers = (): SocketHandlerType[] => [
   {
     eventName: MediaSoupSocket.resume,
     handler: mediaResume
+  },
+  {
+    eventName: MediaSoupSocket.consumeUser,
+    handler: mediaUserConsumeHandler
   }
 ];
 
@@ -82,7 +79,7 @@ export const CleanupSockerHandlers = (): SocketHandlerType[] => [
     handler: (err) => log.error('client connection error', err)
   },
   {
-    eventName: 'disconnect',
+    eventName: 'disconnecting',
     handler: handlerDisconnect
   }
 ];
