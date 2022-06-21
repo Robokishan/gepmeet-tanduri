@@ -21,6 +21,35 @@ services:
       - 'redis_data:/bitnami/redis/data'
     restart: 'always'
 
+  tanduri:
+    image: robokishan/gepmeet:tanduri
+    ports:
+      - '8080:8080'
+    environment:
+      - PORT=8081
+      - JWT_SECRET=string
+      - MONGODB_URL=mongodb+srv://quadx:Jaiganesha143k@tanduriocean.dkglu.mongodb.net/myFirstDatabase?retryWrites=true&w=majority
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABITMQ_URL=amqp://admin:admin@rabbitmq
+
+  panchayat:
+    image: robokishan/gepmeet:panchayat
+    ports:
+      - '8080:8080'
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WORKER_ID=CHAY
+      - RABITMQ_URL=amqp://admin:admin@rabbitmq
+      - WEBRTC_A_IP=65.20.75.214
+
+  hunger:
+    image: robokishan/gepmeet:hunger
+    ports:
+      - '80:80'
+    restart: always
+
   # mongo1:
   #   hostname: mongo1
   #   container_name: mongo1
