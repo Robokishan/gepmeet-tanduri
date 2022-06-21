@@ -12,6 +12,7 @@ import {
 import { MediaSoupSocket, SocketRPCType } from '../../../utils/types';
 import { startRPCClient } from '../../../modules/rpc';
 import { MediaSoupCommand } from '../../../modules/rpc/handler';
+import { startRoomSubscribers } from '../../../modules/subscribers';
 
 let last_selected_worker = 0;
 
@@ -24,7 +25,6 @@ export async function startNegotiationHandler(
   if (!workers[last_selected_worker]) new Error('Worker not assigned');
 
   const worker = workers[last_selected_worker];
-
   callback(worker);
   // round robin algorithm to get new worker
   // TODO: PROPER METHOD BASED ON cpu consumption to select worker
@@ -33,10 +33,11 @@ export async function startNegotiationHandler(
 
   // store session data in to redis
   // Todo: write session manager for socket.io
-  saveUserPanchayatWorker(
+  await saveUserPanchayatWorker(
     _data.roomId as string,
     worker,
-    _data.userId as string
+    _data.userId as string,
+    this.id
   );
 
   this.rpcClient = await startRPCClient(`panchayat:handshake:${worker}`);
@@ -45,6 +46,7 @@ export async function startNegotiationHandler(
     roomId: _data.roomId,
     userId: _data.userId
   });
+  await startRoomSubscribers(_data.roomId);
   // emit to mediasoup socket that room has been assigned so that transport can be created
   this.emit(MediaSoupSocket.roomAssigned);
 }
@@ -97,6 +99,8 @@ export async function connectProducerTransportHandler(
     [{ dtlsParameters, sessionData }]
   );
   callback(connectProducerResponse);
+  console.log('Joining roomId', sessionData.roomId);
+  this.join(sessionData.roomId);
 }
 
 export async function mediaproduceHandler(
@@ -105,11 +109,16 @@ export async function mediaproduceHandler(
   callback: any
 ) {
   const sessionData = await getSessionData(this.id);
-  const producerResponse = await this.rpcClient.sendCommand(
+  const producerResponse: any = await this.rpcClient.sendCommand(
     MediaSoupCommand.produce,
     [{ sessionData, produceMeta: _data }]
   );
   callback(producerResponse);
+  this.to(sessionData.roomId).emit('newuserjoin', {
+    roomId: sessionData.roomId,
+    userId: sessionData.userId,
+    producerId: producerResponse.id
+  });
 }
 
 export async function createConsumerTransportHandler(
@@ -157,6 +166,30 @@ export async function mediaconsumeHandler(
   callback(mediaConsumerResponse);
 }
 
+export async function mediaUserConsumeHandler(
+  this: SocketRPCType,
+  _data: any,
+  callback: any
+) {
+  const sessionData = await getSessionData(this.id);
+  const { rtpCapabilities } = _data;
+  if (!_data.userId) throw new Error('Please provide userId');
+  if (!(_data?.producerIds.length > 0))
+    throw new Error('Please provide producerId');
+  const mediaConsumerResponse = await this.rpcClient.sendCommand(
+    MediaSoupCommand.consumeUser,
+    [
+      {
+        rtpCapabilities,
+        sessionData,
+        userId: _data.userId,
+        producerIds: _data.producerIds
+      }
+    ]
+  );
+  callback(mediaConsumerResponse);
+}
+
 export async function mediaResume(
   this: SocketRPCType,
   _data: any,
@@ -165,7 +198,9 @@ export async function mediaResume(
 
 export async function handlerDisconnect(this: SocketRPCType, err: unknown) {
   //  disconnect and cleanup function should be more clear
+
   const sessionData = await getSessionData(this.id);
+  this.to(sessionData.roomId).emit('userleft', { userId: sessionData.userId });
   if (sessionData?.roomId && sessionData?.userId) {
     const worker = await getUserPanchayatWorker(
       sessionData.roomId,

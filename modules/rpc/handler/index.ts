@@ -6,11 +6,14 @@ export interface HelperType {
 }
 
 export enum MediaSoupCommand {
+  consumeUser = 'consumeUser',
   disconnect = 'disconnect',
   getRouterRtpCapabilities = 'getRouterRtpCapabilities',
   createProducerTransport = 'createProducerTransport',
   connectProducerTransport = 'connectProducerTransport',
   produce = 'produce',
+  closePeer = 'closePeer',
+  newPeer = 'newPeer',
   consume = 'consume',
   resume = 'resume',
   createConsumerTransport = 'createConsumerTransport',
@@ -18,16 +21,14 @@ export enum MediaSoupCommand {
 }
 
 export const serverhelpers = (): HelperType[] => [
-  {
-    eventName: 'hi',
-    handler: () => ({
-      message: 'hi'
-    })
-  }
+  // {
+  //   eventName: MediaSoupCommand.newPeer,
+  //   handler: newPeerJoinHandler
+  // }
 ];
 
 export const registerRPCServerHandlers = (server: AMQPRPCServer) => {
-  serverhelpers().forEach((helper) => {
-    server.addCommand(helper.eventName, helper.handler);
-  });
+  // serverhelpers().forEach((helper) => {
+  //   server.addCommand(helper.eventName, helper.handler);
+  // });
 };

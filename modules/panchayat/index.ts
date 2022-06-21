@@ -24,9 +24,11 @@ export const getUserPanchayatWorker = async (
   try {
     const RoomHashKey = getRoomHashKey(roomId, '*', userId);
     const [, workerKey] = await redis.scan(0, 'MATCH', RoomHashKey);
+    log.info(workerKey, RoomHashKey);
     const [, worker] = seprateKeys(workerKey[0]);
     return worker;
   } catch (error) {
+    log.error(error);
     return null;
   }
 };
@@ -34,14 +36,16 @@ export const getUserPanchayatWorker = async (
 export const saveUserPanchayatWorker = async (
   roomId: string,
   workerId: string,
-  userId: string
+  userId: string,
+  socketId: string
 ): Promise<void> => {
   try {
     const RoomHashKey = getRoomHashKey(roomId, workerId, userId);
     await redis.hmset(RoomHashKey, {
       workerId,
       roomId,
-      userId
+      userId,
+      socketId
     });
   } catch (error) {
     log.error(error);
