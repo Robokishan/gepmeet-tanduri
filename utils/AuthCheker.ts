@@ -34,24 +34,10 @@ export const customAuthChecker: AuthChecker = async (
   // here we can read the user from context
   // and check his permission in the db against the `roles` argument
   // that comes from the `@Authorized` decorator, eg. ["ADMIN", "MODERATOR"]
-  const { req, res } = context as any;
-  const authorization = req.headers['authorization'];
-  if (!authorization && !req.cookies.token) {
-    let message =
-      process.env.NODE_ENV === 'production'
-        ? 'Page Not found'
-        : 'Please mention authorizatin token';
-  }
-
+  const { req } = context as any;
   //get the token from authorization : Bearer <token>
-  let token = null;
-  try {
-    if (req.cookies.token) {
-      token = req.cookies.token;
-    }
-  } catch (error) {
-    log.error('auth error', error);
-  }
+  const token = req.headers?.authorization;
+  log.info('token', token);
 
   let isValidToken = false;
   if (token) {
