@@ -167,18 +167,16 @@ export class UserResolver {
           ]
         };
       } else {
-        const { token: accesstoken, expire } = createAccessToken(user);
+        const { token: accesstoken } = createAccessToken(user);
 
         // NOTE: Make sure cookie params are properly set so that it can work with studio.apollographql.com
-        res.cookie('token', accesstoken, {
-          // expires: new Date(Date.now() + expiration),
-          secure: true, // set to true if your using https
-          httpOnly: __prod__,
-          maxAge: expire * 1000,
-          // httpOnly: true,
-          // secure: true,
-          sameSite: 'none'
-        });
+        // res.cookie('token', accesstoken, {
+        //   secure: true, // set to true if your using https
+        //   // httpOnly: __prod__,
+        //   httpOnly: false,
+        //   maxAge: expire * 1000,
+        //   sameSite: 'none'
+        // });
         return {
           user: {
             name: user?.name,

@@ -26,29 +26,46 @@ services:
     ports:
       - '8080:8080'
     environment:
-      - PORT=8081
+      - PORT=8080
       - JWT_SECRET=string
       - MONGODB_URL=mongodb+srv://quadx:Jaiganesha143k@tanduriocean.dkglu.mongodb.net/myFirstDatabase?retryWrites=true&w=majority
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - RABITMQ_URL=amqp://admin:admin@rabbitmq
+    restart: 'always'
 
   panchayat:
     image: robokishan/gepmeet:panchayat
     ports:
-      - '8080:8080'
+      - '2000-2020:2000-2020'
     environment:
+      - WEBRTC_MIN_PORT=2000
+      - WEBRTC_MAX_PORT=2020
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - WORKER_ID=CHAY
       - RABITMQ_URL=amqp://admin:admin@rabbitmq
       - WEBRTC_A_IP=65.20.75.214
+    restart: 'always'
 
   hunger:
     image: robokishan/gepmeet:hunger
     ports:
       - '80:80'
     restart: always
+
+  portainer:
+    container_name: portainer
+    image: 'portainer/portainer:latest'
+    logging:
+      options: { max-size: 5m }
+    ports:
+      - '9000:9000'
+      - '8000:8000'
+    restart: always
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - 'portainer_data:/data'
 
   # mongo1:
   #   hostname: mongo1
@@ -93,5 +110,6 @@ services:
 
 volumes:
   # mongodb_data:
+  portainer_data:
   redis_data:
     driver: local
