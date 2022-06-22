@@ -7,7 +7,6 @@ import {
 } from '../../controllers/SocketHandler';
 
 import { SocketRPCType } from '../../utils/types';
-import cookie from 'cookie';
 
 let io: SocketServer = null;
 const TanduriSocket = (
@@ -18,7 +17,7 @@ const TanduriSocket = (
 
   // server
   io.use((socket, next) => {
-    const token = cookie.parse(socket.handshake.headers?.cookie)?.token;
+    const token = socket.handshake.headers?.authorization;
     if (token && validateToken(token as string).isValidToken === true) {
       next();
     } else {
