@@ -4,13 +4,13 @@ import Logger from '../../utils/logger';
 const SEPRATER = ':';
 
 const getRoomHashKey = (roomId: string, workerId: string, userId: string) =>
-  `${roomId}${SEPRATER}${workerId}${SEPRATER}${userId}`;
+  `${roomId}${SEPRATER}${SEPRATER}${userId}`;
 const getWorkerIdsKey = () => `WORKERS${SEPRATER}IDS`;
 
 const log = new Logger();
-const seprateKeys = (key: string): Array<string> => {
-  return key.split(SEPRATER);
-};
+// const seprateKeys = (key: string): Array<string> => {
+//   return key.split(SEPRATER);
+// };
 
 export const getNewPanchayatWorkers = async (): Promise<string[]> => {
   const workers = await redis.smembers(getWorkerIdsKey());
@@ -23,9 +23,7 @@ export const getUserPanchayatWorker = async (
 ): Promise<string> => {
   try {
     const RoomHashKey = getRoomHashKey(roomId, '*', userId);
-    const [, workerKey] = await redis.scan(0, 'MATCH', RoomHashKey);
-    log.info(workerKey, RoomHashKey);
-    const [, worker] = seprateKeys(workerKey[0]);
+    const worker = await redis.hget(RoomHashKey, 'workerId');
     return worker;
   } catch (error) {
     log.error(error);
