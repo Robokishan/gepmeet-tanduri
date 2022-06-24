@@ -37,7 +37,6 @@ export const customAuthChecker: AuthChecker = async (
   const { req } = context as any;
   //get the token from authorization : Bearer <token>
   const token = req.headers?.authorization;
-  log.info('token', token);
 
   let isValidToken = false;
   if (token) {

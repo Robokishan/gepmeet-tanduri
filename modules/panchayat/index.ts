@@ -4,7 +4,7 @@ import Logger from '../../utils/logger';
 const SEPRATER = ':';
 
 const getRoomHashKey = (roomId: string, workerId: string, userId: string) =>
-  `${roomId}${SEPRATER}${SEPRATER}${userId}`;
+  `${roomId}${SEPRATER}${userId}`;
 const getWorkerIdsKey = () => `WORKERS${SEPRATER}IDS`;
 
 const log = new Logger();
