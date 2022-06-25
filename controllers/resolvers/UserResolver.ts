@@ -157,7 +157,7 @@ export class UserResolver {
         };
       }
       const { isValid } = await verifyPassword(options.password, user);
-      if (isValid != true && user == null) {
+      if (isValid != true || user == null) {
         return {
           errors: [
             {
