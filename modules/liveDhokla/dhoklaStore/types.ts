@@ -3,4 +3,5 @@ export interface SessionDataType {
   workerId?: string;
   userId?: string;
   socketId?: string;
+  name?: string;
 }
