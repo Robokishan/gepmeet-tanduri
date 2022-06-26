@@ -75,7 +75,7 @@ services:
     environment:
       - REPO_USER=robokishan
       - REPO_PASS=dbbe1358-b67e-44e3-b5b9-a227cfa4307d
-    command: --interval 5
+    command: --interval 5 --cleanup
 
   # mongo1:
   #   hostname: mongo1
