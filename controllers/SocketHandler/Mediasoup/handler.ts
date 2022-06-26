@@ -13,6 +13,8 @@ import { MediaSoupSocket, SocketRPCType } from '../../../utils/types';
 import { startRPCClient } from '../../../modules/rpc';
 import { MediaSoupCommand } from '../../../modules/rpc/handler';
 import { startRoomSubscribers } from '../../../modules/subscribers';
+import { em } from '../../../modules/orm';
+import { User } from '../../../entities/User';
 
 let last_selected_worker = 0;
 
@@ -39,12 +41,15 @@ export async function startNegotiationHandler(
     _data.userId as string,
     this.id
   );
+  const user = await em.getRepository(User);
+  const me = await user.findOne({ id: _data.userId });
 
   this.rpcClient = await startRPCClient(`panchayat:handshake:${worker}`);
   await saveSessiondata(this.id, {
     workerId: worker,
     roomId: _data.roomId,
-    userId: _data.userId
+    userId: _data.userId,
+    name: me.name
   });
   await startRoomSubscribers(_data.roomId);
   // emit to mediasoup socket that room has been assigned so that transport can be created
@@ -99,8 +104,10 @@ export async function connectProducerTransportHandler(
     [{ dtlsParameters, sessionData }]
   );
   callback(connectProducerResponse);
-  console.log('Joining roomId', sessionData.roomId);
   this.join(sessionData.roomId);
+  this.to(sessionData.roomId).emit('notifyuserentered', {
+    name: sessionData.name
+  });
 }
 
 export async function mediaproduceHandler(
@@ -114,9 +121,11 @@ export async function mediaproduceHandler(
     [{ sessionData, produceMeta: _data }]
   );
   callback(producerResponse);
+
   this.to(sessionData.roomId).emit('newuserjoin', {
     roomId: sessionData.roomId,
     userId: sessionData.userId,
+    name: sessionData.name,
     producerId: producerResponse.id
   });
 }
@@ -200,7 +209,11 @@ export async function handlerDisconnect(this: SocketRPCType, err: unknown) {
   //  disconnect and cleanup function should be more clear
 
   const sessionData = await getSessionData(this.id);
-  this.to(sessionData.roomId).emit('userleft', { userId: sessionData.userId });
+  this.to(sessionData.roomId).emit('userleft', {
+    userId: sessionData.userId,
+    name: sessionData?.name
+  });
+  this.leave(sessionData.roomId);
   if (sessionData?.roomId && sessionData?.userId) {
     const worker = await getUserPanchayatWorker(
       sessionData.roomId,

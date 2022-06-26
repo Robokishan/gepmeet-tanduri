@@ -1,8 +1,6 @@
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 import 'dotenv/config';
 // const deps
-import { MikroORM } from '@mikro-orm/core';
-import { MongoDriver } from '@mikro-orm/mongodb';
 import {
   ApolloServerPluginLandingPageDisabled,
   ApolloServerPluginLandingPageGraphQLPlayground
@@ -20,10 +18,8 @@ import config from './config/config';
 import express from './config/express';
 import { ConversationResolver } from './controllers/resolvers/ConversationResolver';
 import { UserResolver } from './controllers/resolvers/UserResolver';
-import { Conversation } from './entities/Conversation';
-import { Permission } from './entities/Permission';
-import { User } from './entities/User';
 import { TanduriSocket } from './modules/liveDhokla';
+import { em, initOrm } from './modules/orm';
 import { Context } from './types/Context';
 import { customAuthChecker } from './utils/AuthCheker';
 import { __prod__ } from './utils/constant';
@@ -42,27 +38,7 @@ async function main() {
   // start rabbitmq connection
   await startRabbit();
 
-  // Construct a schema, using GraphQL schema language
-  // make sure to provide the MongoDriver type hint
-  let orm: MikroORM<MongoDriver>;
-  try {
-    log.info('MongoURL => ', process.env.MONGODB_URL);
-    orm = await MikroORM.init<MongoDriver>({
-      entities: [Conversation, User, Permission],
-      dbName: 'tanduri',
-      clientUrl: process.env.MONGODB_URL,
-      type: 'mongo',
-      debug: !__prod__,
-      allowGlobalContext: true,
-      implicitTransactions: true, // defaults to false
-      ensureIndexes: true // defaults to false,
-    });
-  } catch (error) {
-    log.error(error);
-    process.exit(1);
-  }
-
-  await orm.getSchemaGenerator().createSchema();
+  await initOrm();
 
   const schema = await buildSchema({
     resolvers: [ConversationResolver, UserResolver], // add this,
@@ -78,7 +54,7 @@ async function main() {
     ],
     context: ({ req, res }) => {
       const ctx: Context = {
-        em: orm.em,
+        em: em,
         req,
         res
       };

@@ -81,5 +81,9 @@ export const CleanupSockerHandlers = (): SocketHandlerType[] => [
   {
     eventName: 'disconnecting',
     handler: handlerDisconnect
+  },
+  {
+    eventName: 'leaveroom',
+    handler: handlerDisconnect
   }
 ];
