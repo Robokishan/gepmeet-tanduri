@@ -209,27 +209,30 @@ export async function handlerDisconnect(this: SocketRPCType, err: unknown) {
   //  disconnect and cleanup function should be more clear
 
   const sessionData = await getSessionData(this.id);
-  this.to(sessionData.roomId).emit('userleft', {
-    userId: sessionData.userId,
-    name: sessionData?.name
-  });
-  this.leave(sessionData.roomId);
-  if (sessionData?.roomId && sessionData?.userId) {
-    const worker = await getUserPanchayatWorker(
-      sessionData.roomId,
-      sessionData.userId
-    );
-    if (worker) {
-      await deleteUserPanchayatWorker(
+
+  if (sessionData) {
+    this.to(sessionData.roomId).emit('userleft', {
+      userId: sessionData.userId,
+      name: sessionData?.name
+    });
+    this.leave(sessionData.roomId);
+    if (sessionData?.roomId && sessionData?.userId) {
+      const worker = await getUserPanchayatWorker(
         sessionData.roomId,
-        worker,
         sessionData.userId
-      ); //delete room details
-      await this.rpcClient.sendCommand(MediaSoupCommand.disconnect, [
-        { sessionData }
-      ]);
+      );
+      if (worker) {
+        await deleteUserPanchayatWorker(
+          sessionData.roomId,
+          worker,
+          sessionData.userId
+        ); //delete room details
+        await this.rpcClient.sendCommand(MediaSoupCommand.disconnect, [
+          { sessionData }
+        ]);
+      }
     }
+    if (this.rpcClient) await this.rpcClient.disconnect(); //disconnect rpc client
+    deleteSessionData(this.id); //remove session data
   }
-  if (this.rpcClient) await this.rpcClient.disconnect(); //disconnect rpc client
-  deleteSessionData(this.id); //remove session data
 }
