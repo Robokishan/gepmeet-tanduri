@@ -11,6 +11,7 @@ import {
   mediaproduceHandler,
   mediaResume,
   mediaUserConsumeHandler,
+  roomOnUserDrag,
   startNegotiationHandler
 } from './handler';
 
@@ -66,6 +67,10 @@ export const MediasoupSocketHandlers = (): SocketHandlerType[] => [
   {
     eventName: MediaSoupSocket.consumeUser,
     handler: mediaUserConsumeHandler
+  },
+  {
+    eventName: 'drag',
+    handler: roomOnUserDrag
   }
 ];
 

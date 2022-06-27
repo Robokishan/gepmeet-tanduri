@@ -205,6 +205,15 @@ export async function mediaResume(
   callback: any
 ) {}
 
+export async function roomOnUserDrag(
+  this: SocketRPCType,
+  _data: any,
+  callback: any
+) {
+  const sessionData = await getSessionData(this.id);
+  this.to(sessionData.roomId).emit('drag', _data);
+}
+
 export async function handlerDisconnect(this: SocketRPCType, err: unknown) {
   //  disconnect and cleanup function should be more clear
 
