@@ -6,5 +6,5 @@ RUN yarn
 COPY . .
 RUN yarn build
 ENV NODE_ENV production
-CMD [ "node", "build/index.js" ]
+CMD [ "npm", "start" ]
 USER node
