@@ -37,13 +37,33 @@ const createAccessToken = (user: any): TokenResponse => {
         user_name: user.user_name,
         type: user.type
       },
-      config.SECRET,
+      config.ACCESS_TOKEN_SECRET,
       {
-        expiresIn: config.JWT_EXPIRATION
+        expiresIn: config.ACCESS_TOKEN_EXPIRATION
       }
     ),
-    expire: config.JWT_EXPIRATION
+    expire: config.ACCESS_TOKEN_EXPIRATION
   };
 };
 
-export { verifyPassword, generatePassword, createAccessToken };
+const createRefreshToken = (user: any): TokenResponse => {
+  return {
+    token: sign(
+      {
+        userId: user.id
+      },
+      config.REFRESH_TOKEN_SECRET,
+      {
+        expiresIn: config.REFRESH_TOKEN_EXPIRATION
+      }
+    ),
+    expire: config.REFRESH_TOKEN_EXPIRATION
+  };
+};
+
+export {
+  verifyPassword,
+  generatePassword,
+  createAccessToken,
+  createRefreshToken
+};
