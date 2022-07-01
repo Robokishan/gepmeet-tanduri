@@ -1,5 +1,5 @@
-import { AuthChecker } from 'type-graphql';
 import jwt from 'jsonwebtoken';
+import { AuthChecker } from 'type-graphql';
 import config from '../config/config';
 import Logger from './logger';
 
@@ -10,11 +10,11 @@ interface TokenValidityResponse {
   decoded: any;
 }
 
-export const validateToken = (token: string): TokenValidityResponse => {
+export const validateAccessToken = (token: string): TokenValidityResponse => {
   let isValidToken = false;
   let decoded = null;
   try {
-    decoded = jwt.verify(token, config.SECRET) as any;
+    decoded = jwt.verify(token, config.ACCESS_TOKEN_SECRET) as any;
     //   no need it is just to check if user has changed password nor not
     //   const user = await Users.findOne({ id: decoded.userId });
     //   req.userId = decoded.userId;
@@ -27,10 +27,20 @@ export const validateToken = (token: string): TokenValidityResponse => {
   return { isValidToken, decoded };
 };
 
-export const customAuthChecker: AuthChecker = async (
-  { root, args, context, info },
-  roles
-) => {
+export const validateRefreshToken = (token: string): TokenValidityResponse => {
+  let isValidToken = false;
+  let decoded = null;
+  try {
+    decoded = jwt.verify(token, config.REFRESH_TOKEN_SECRET) as any;
+    isValidToken = true;
+  } catch (Err) {
+    log.error('Err', Err);
+    isValidToken = false;
+  }
+  return { isValidToken, decoded };
+};
+
+export const customAuthChecker: AuthChecker = async ({ context }) => {
   // here we can read the user from context
   // and check his permission in the db against the `roles` argument
   // that comes from the `@Authorized` decorator, eg. ["ADMIN", "MODERATOR"]
@@ -40,7 +50,7 @@ export const customAuthChecker: AuthChecker = async (
 
   let isValidToken = false;
   if (token) {
-    const { isValidToken: _isValid, decoded } = validateToken(token);
+    const { isValidToken: _isValid, decoded } = validateAccessToken(token);
     isValidToken = _isValid;
     (context as any).req = {
       ...req,

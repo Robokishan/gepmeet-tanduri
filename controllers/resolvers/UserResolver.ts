@@ -11,9 +11,11 @@ import {
 } from 'type-graphql';
 import { LoginInput, RegistrationInput, User } from '../../entities/User';
 import { Context } from '../../types/Context';
-import { __prod__ } from '../../utils/constant';
+import { validateRefreshToken } from '../../utils/AuthCheker';
+import { CookieKeys, __prod__ } from '../../utils/constant';
 import {
   createAccessToken,
+  createRefreshToken,
   generatePassword,
   verifyPassword
 } from '../../utils/PasswordManager';
@@ -25,6 +27,12 @@ class Token {
 
   @Field()
   expires_in: string;
+
+  @Field()
+  refreshToken: string;
+
+  @Field()
+  rexpires_in: string;
 }
 
 @ObjectType()
@@ -168,15 +176,16 @@ export class UserResolver {
         };
       } else {
         const { token: accesstoken } = createAccessToken(user);
+        const { token: refreshToken, expire } = createRefreshToken(user);
 
         // NOTE: Make sure cookie params are properly set so that it can work with studio.apollographql.com
-        // res.cookie('token', accesstoken, {
-        //   secure: true, // set to true if your using https
-        //   // httpOnly: __prod__,
-        //   httpOnly: false,
-        //   maxAge: expire * 1000,
-        //   sameSite: 'none'
-        // });
+        res.cookie(CookieKeys.REFRESH_TOKEN, refreshToken, {
+          secure: true,
+          httpOnly: true,
+          maxAge: expire * 1000,
+          sameSite: 'none'
+        });
+
         return {
           user: {
             name: user?.name,
@@ -184,7 +193,9 @@ export class UserResolver {
             id: user?.id,
             token: {
               access_token: accesstoken,
-              expires_in: (jwt.decode(accesstoken) as any).exp
+              expires_in: (jwt.decode(accesstoken) as any).exp,
+              refreshToken,
+              rexpires_in: (jwt.decode(refreshToken) as any).exp
             }
           }
         };
@@ -195,6 +206,58 @@ export class UserResolver {
           {
             field: 'email',
             message: (error as Error).message
+          }
+        ]
+      };
+    }
+  }
+
+  @Mutation(() => Boolean)
+  async logout(@Ctx() { res }: Context) {
+    res.clearCookie(CookieKeys.REFRESH_TOKEN);
+    return true;
+  }
+
+  @Mutation(() => UserResponse)
+  async refresh(@Ctx() { req, em, res }: Context) {
+    const token = req.cookies[CookieKeys.REFRESH_TOKEN];
+    if (token) {
+      const { decoded, isValidToken } = validateRefreshToken(token);
+      if (isValidToken) {
+        const { userId: id } = decoded;
+        const user = await em.getRepository(User).findOneOrFail({ id });
+        const { token: accesstoken } = createAccessToken(user);
+        const { token: refreshToken, expire } = createRefreshToken(user);
+
+        // NOTE: Make sure cookie params are properly set so that it can work with studio.apollographql.com
+        res.cookie(CookieKeys.REFRESH_TOKEN, refreshToken, {
+          secure: true,
+          httpOnly: true,
+          maxAge: expire * 1000,
+          sameSite: 'none'
+        });
+
+        return {
+          user: {
+            name: user?.name,
+            email: user?.email,
+            id: user?.id,
+            token: {
+              access_token: accesstoken,
+              expires_in: (jwt.decode(accesstoken) as any).exp,
+              refreshToken,
+              rexpires_in: (jwt.decode(refreshToken) as any).exp
+            }
+          }
+        };
+      }
+    } else {
+      res.statusCode = 401;
+      return {
+        errors: [
+          {
+            field: 'not found',
+            message: 'Somthing went wrong'
           }
         ]
       };

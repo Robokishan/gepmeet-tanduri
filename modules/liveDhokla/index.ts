@@ -1,6 +1,6 @@
 import { Server as SocketServer, ServerOptions } from 'socket.io';
 import { Server } from 'http';
-import { validateToken } from '../../utils/AuthCheker';
+import { validateAccessToken } from '../../utils/AuthCheker';
 import {
   cleanupSocketsHandlers,
   registerMediasoupHandlers
@@ -18,7 +18,7 @@ const TanduriSocket = (
   // server
   io.use((socket, next) => {
     const token = socket.handshake.headers?.authorization;
-    if (token && validateToken(token as string).isValidToken === true) {
+    if (token && validateAccessToken(token as string).isValidToken === true) {
       next();
     } else {
       next(new Error('Socket authentication error'));
