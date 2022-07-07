@@ -47,7 +47,7 @@ jobs:
           context: ./
           file: ./Dockerfile
           push: true
-          tags: robokishan/gepmeet:${{steps.vars.outputs.tag}}
+          tags: robokishan/gepmeet:tanduri-${{steps.vars.outputs.tag}}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
       - name: Image digest
