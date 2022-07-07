@@ -77,7 +77,6 @@ services:
     depends_on:
       - redis
       - rabbitmq
-      - gepmeet-entry
 
   hunger:
     container_name: hunger
