@@ -1,7 +1,27 @@
 version: '3'
 services:
+  gepmeet-entry:
+    container_name: gepmeet-entry
+    image: robokishan/gepmeet:nginx
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+    volumes:
+      - ./nginx/conf/:/etc/nginx/conf.d/:ro
+      - ./certbot/www:/var/www/certbot/:ro
+      - ./certbot/conf/:/etc/nginx/ssl/:ro
+
+  certbot:
+    container_name: certbot
+    image: certbot/certbot:latest
+    volumes:
+      - ./certbot/www/:/var/www/certbot/:rw
+      - ./certbot/conf/:/etc/letsencrypt/:rw
+
   rabbitmq:
-    image: rabbitmq:3-management
+    container_name: rabbitmq
+    image: rabbitmq:3.9-management
     ports:
       - '5672:5672'
       - '15672:15672'
@@ -11,6 +31,7 @@ services:
     restart: 'always'
 
   redis:
+    container_name: redis
     image: docker.io/bitnami/redis:6.2
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
@@ -21,6 +42,7 @@ services:
     restart: 'always'
 
   tanduri:
+    container_name: tanduri
     image: robokishan/gepmeet:tanduri
     ports:
       - '8080:8080'
@@ -32,8 +54,14 @@ services:
       - REDIS_PORT=6379
       - RABITMQ_URL=amqp://admin:admin@rabbitmq
     restart: 'always'
+    depends_on:
+      - redis
+      - rabbitmq
+      - gepmeet-entry
+      - panchayat
 
   panchayat:
+    container_name: panchayat
     image: robokishan/gepmeet:panchayat
     ports:
       - '2000-2020:2000-2020'
@@ -46,11 +74,16 @@ services:
       - RABITMQ_URL=amqp://admin:admin@rabbitmq
       - WEBRTC_A_IP=65.20.75.214
     restart: 'always'
+    depends_on:
+      - redis
+      - rabbitmq
+      - gepmeet-entry
 
   hunger:
+    container_name: hunger
     image: robokishan/gepmeet:hunger
     ports:
-      - '80:80'
+      - '3000:80'
     restart: always
 
   portainer:
@@ -68,13 +101,14 @@ services:
       - 'portainer_data:/data'
 
   watchtower:
+    container_name: watchtower
     image: containrrr/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - REPO_USER=robokishan
       - REPO_PASS=dbbe1358-b67e-44e3-b5b9-a227cfa4307d
-    command: --interval 5 --cleanup
+    command: hunger panchayat tanduri certbot gepmeet-entry --interval 5 --cleanup --include-restarting
 
   # mongo1:
   #   hostname: mongo1
