@@ -236,12 +236,17 @@ export async function handlerDisconnect(this: SocketRPCType, err: unknown) {
           worker,
           sessionData.userId
         ); //delete room details
-        await this.rpcClient.sendCommand(MediaSoupCommand.disconnect, [
-          { sessionData }
-        ]);
+        if (this.rpcClient) {
+          await this.rpcClient.sendCommand(MediaSoupCommand.disconnect, [
+            { sessionData }
+          ]);
+        }
       }
     }
-    if (this.rpcClient) await this.rpcClient.disconnect(); //disconnect rpc client
+    if (this.rpcClient) {
+      await this.rpcClient.disconnect(); //disconnect rpc client
+      this.rpcClient = null;
+    }
     deleteSessionData(this.id); //remove session data
   }
 }
