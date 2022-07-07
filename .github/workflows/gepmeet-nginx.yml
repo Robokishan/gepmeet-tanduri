@@ -3,7 +3,7 @@ name: gepmeet-nginx
 on:
   push:
     tags:
-      - 'entry-v*.*.*'
+      - 'nginx-v*.*.*'
 
 jobs:
   build:
