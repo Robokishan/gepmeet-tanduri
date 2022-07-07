@@ -25,12 +25,16 @@ import { customAuthChecker } from './utils/AuthCheker';
 import { __prod__ } from './utils/constant';
 import Logger from './utils/logger';
 
+const log = new Logger();
+
 async function main() {
   // Create server
-  const log = new Logger();
   const app = express();
 
-  const originList = ['http://localhost:3000'];
+  const originList = [
+    'http://localhost:3000',
+    'https://wemeet.kishanjoshi.dev'
+  ];
 
   if (process.env.NODE_ENV == 'development')
     originList.push('https://studio.apollographql.com');
@@ -91,4 +95,7 @@ async function main() {
     );
   });
 }
-main();
+main().catch((err) => {
+  log.error(err, 'Restarting tanduri server');
+  process.exit(1);
+});
