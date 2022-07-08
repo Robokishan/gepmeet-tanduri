@@ -89,7 +89,7 @@ services:
     container_name: portainer
     image: 'portainer/portainer-ce:latest'
     logging:
-      options: { max-size: 5m }
+      options: { max-size: 1m }
     ports:
       - '9000:9000'
       - '8000:8000'
