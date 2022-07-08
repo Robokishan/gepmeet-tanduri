@@ -237,15 +237,24 @@ export async function handlerDisconnect(this: SocketRPCType, err: unknown) {
           sessionData.userId
         ); //delete room details
         if (this.rpcClient) {
-          await this.rpcClient.sendCommand(MediaSoupCommand.disconnect, [
-            { sessionData }
-          ]);
+          try {
+            await this.rpcClient.sendCommand(MediaSoupCommand.disconnect, [
+              { sessionData }
+            ]);
+          } catch (_err) {
+            //error because of something related to rpc rabbitmq
+          }
         }
       }
     }
     if (this.rpcClient) {
-      await this.rpcClient.disconnect(); //disconnect rpc client
-      this.rpcClient = null;
+      try {
+        await this.rpcClient.disconnect(); //disconnect rpc client
+      } catch (_err) {
+        //error because of something related to rpc rabbitmq
+      } finally {
+        this.rpcClient = null;
+      }
     }
     deleteSessionData(this.id); //remove session data
   }

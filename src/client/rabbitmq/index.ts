@@ -21,9 +21,11 @@ const startRabbit = async () => {
         });
         conn.on('error', async (err: Error) => {
           log.error('Rabbit connection error: ', err);
-          conn.close();
           conn.removeAllListeners();
-          setTimeout(async () => await startRabbit(), retryInterval);
+          setTimeout(
+            () => startRabbit().then((conn) => resolve(conn)),
+            retryInterval
+          );
         });
         rabbitMQConnection = conn;
         log.info(`Rabbitmq Connection Successfull`);
@@ -34,8 +36,12 @@ const startRabbit = async () => {
       })
       .catch((err) => {
         log.error(err);
-        setTimeout(async () => await startRabbit(), retryInterval);
+        setTimeout(
+          () => startRabbit().then((conn) => resolve(conn)),
+          retryInterval
+        );
       });
+    // pending implementation for rpc server for tanduri which is not required as of now
     // await startRPCServer(conn, 'gepmeet-tanduri');
   });
 };
