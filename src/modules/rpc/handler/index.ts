@@ -17,7 +17,8 @@ export enum MediaSoupCommand {
   consume = 'consume',
   resume = 'resume',
   createConsumerTransport = 'createConsumerTransport',
-  connectConsumerTransport = 'connectConsumerTransport'
+  connectConsumerTransport = 'connectConsumerTransport',
+  joinRoom = 'joinRoom'
 }
 
 export const serverhelpers = (): HelperType[] => [

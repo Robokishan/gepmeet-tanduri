@@ -15,6 +15,7 @@ import { MediaSoupCommand } from '../../../modules/rpc/handler';
 import { startRoomSubscribers } from '../../../modules/subscribers';
 import { em } from '../../../modules/orm';
 import { User } from '../../../entities/User';
+import { SessionDataType } from '../../../modules/liveDhokla/dhoklaStore/types';
 
 let last_selected_worker = 0;
 
@@ -45,12 +46,17 @@ export async function startNegotiationHandler(
   const me = await user.findOne({ id: _data.userId });
 
   this.rpcClient = await startRPCClient(`panchayat:handshake:${worker}`);
-  await saveSessiondata(this.id, {
+  const sessionData: SessionDataType = {
     workerId: worker,
     roomId: _data.roomId,
     userId: _data.userId,
     name: me.name
-  });
+  };
+  await saveSessiondata(this.id, sessionData);
+
+  this.rpcClient.sendCommand(MediaSoupCommand.joinRoom, [sessionData]);
+
+  // wrong logic because of multiple users in same room
   await startRoomSubscribers(_data.roomId);
   // emit to mediasoup socket that room has been assigned so that transport can be created
   this.emit(MediaSoupSocket.roomAssigned);
