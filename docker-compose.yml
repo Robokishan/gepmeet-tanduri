@@ -34,6 +34,7 @@ services:
     container_name: redis
     image: docker.io/bitnami/redis:6.2
     environment:
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
       - ALLOW_EMPTY_PASSWORD=yes
     ports:
       - '6379:6379'
@@ -64,10 +65,10 @@ services:
     container_name: panchayat
     image: robokishan/gepmeet:panchayat
     ports:
-      - '2000-2020:2000-2020'
+      - '40000-49999:40000-49999'
     environment:
-      - WEBRTC_MIN_PORT=2000
-      - WEBRTC_MAX_PORT=2020
+      - WEBRTC_MIN_PORT=40000
+      - WEBRTC_MAX_PORT=49999
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - WORKER_ID=CHAY
