@@ -21,7 +21,7 @@ services:
 
   rabbitmq:
     container_name: rabbitmq
-    image: rabbitmq:3.9-management
+    image: rabbitmq:3.9-management-alpine
     ports:
       - '5672:5672'
       - '15672:15672'
@@ -65,10 +65,10 @@ services:
     container_name: panchayat
     image: robokishan/gepmeet:panchayat
     ports:
-      - '40000-49999:40000-49999'
+      - '2000-5000:2000-5000'
     environment:
-      - WEBRTC_MIN_PORT=40000
-      - WEBRTC_MAX_PORT=49999
+      - WEBRTC_MIN_PORT=2000
+      - WEBRTC_MAX_PORT=5000
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - WORKER_ID=CHAY
