@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - '**/docker-compose.yml'
+      - '**.md'
+      - '**/tsconfig.json'
+      - '**/gepmeet-nginx.yml'
+      - '**/tanduri-release.yml'
 
 jobs:
   build:
