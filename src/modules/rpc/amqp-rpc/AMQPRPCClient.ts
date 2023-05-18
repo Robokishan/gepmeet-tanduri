@@ -1,7 +1,13 @@
 import Command from './Command';
 import CommandResult from './CommandResult';
 import AMQPEndpoint from './AMQPEndpoint';
-
+interface paramsType {
+  repliesQueue?: string;
+  timeout?: number;
+  requestsQueue: string;
+  exchange: string;
+  defaultMessageOptions?: Record<string, unknown>;
+}
 /**
  * This class is responsible for sending commands to the RPC server.
  *
@@ -25,15 +31,16 @@ class AMQPRPCClient extends AMQPEndpoint {
   _requests: Map<any, any>;
   _defaultMessageOptions: any;
   _consumerTag: string;
-  constructor(connection, params: any = {}) {
+  exChange: string;
+  constructor(connection, params: paramsType) {
     params.repliesQueue = params.repliesQueue || '';
     params.timeout = params.timeout || AMQPRPCClient.TIMEOUT;
-
     if (!params.requestsQueue) {
-      throw new Error('params.requestsQueue is required');
+      if (params.requestsQueue !== '')
+        throw new Error('params.requestsQueue is required');
     }
     super(connection, params);
-
+    this.exChange = params.exchange;
     this._repliesQueue = params.repliesQueue;
     this._cmdNumber = 0;
     this._requests = new Map();
@@ -53,6 +60,7 @@ class AMQPRPCClient extends AMQPEndpoint {
   async sendCommand(
     command: string,
     args: Array<any> = [],
+    workerId: string,
     messageOptions = {}
   ) {
     const cmd = new Command(command, args);
@@ -60,7 +68,7 @@ class AMQPRPCClient extends AMQPEndpoint {
     const correlationId = String(this._cmdNumber++);
     const replyTo = this._repliesQueue;
     const timeout = this._params.timeout;
-    const requestsQueue = this._params.requestsQueue;
+    // const requestsQueue = this._params.requestsQueue;
     const commonProperties = { replyTo, correlationId };
 
     const properties = Object.assign(
@@ -88,7 +96,8 @@ class AMQPRPCClient extends AMQPEndpoint {
       command
     });
 
-    this._channel.sendToQueue(requestsQueue, cmd.pack(), properties);
+    // this._channel.sendToQueue(requestsQueue, cmd.pack(), properties);
+    this._channel.publish(this.exChange, workerId, cmd.pack(), properties);
 
     return promise;
   }
@@ -102,9 +111,16 @@ class AMQPRPCClient extends AMQPEndpoint {
   async start() {
     await super.start();
     if (this._params.repliesQueue === '') {
-      const response = await this._channel.assertQueue('', { exclusive: true });
+      const response = await this._channel.assertQueue('', {
+        //  exclusive: true
+      });
       this._repliesQueue = response.queue;
     }
+
+    await this._channel.assertExchange(this.exChange, 'direct', {
+      durable: false,
+      autoDelete: true
+    });
 
     const consumeResult = await this._channel.consume(
       this._repliesQueue,

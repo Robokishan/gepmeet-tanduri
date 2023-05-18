@@ -141,7 +141,7 @@ export default class CommandResult {
     );
 
     if (obj.state === CommandResult.STATES.ERROR) {
-      const error = new Error(obj.data.message);
+      const error = new Error(obj.data?.message || 'Unknown error');
       error.stack = obj.data.stack;
       obj.data = error;
     }

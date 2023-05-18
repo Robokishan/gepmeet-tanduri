@@ -27,11 +27,16 @@ export interface SocketHandlerType {
 }
 
 const log = new Logger();
-export const MediasoupSocketHandlers = (): SocketHandlerType[] => [
+
+export const genericSocketHandlers = (): SocketHandlerType[] => [
   {
     eventName: MediaSoupSocket.startNegotiation,
     handler: startNegotiationHandler
-  },
+  }
+];
+
+// todo: add layer of authentication for these handlers
+export const MediasoupSocketHandlers = (): SocketHandlerType[] => [
   {
     eventName: MediaSoupSocket.getRouterRtpCapabilities,
     handler: getRTPCapabilitiesHandler
@@ -74,6 +79,7 @@ export const MediasoupSocketHandlers = (): SocketHandlerType[] => [
   }
 ];
 
+// todo: seprate leave room and socket disconnet events
 export const CleanupSockerHandlers = (): SocketHandlerType[] => [
   {
     eventName: 'connect_error',
@@ -86,7 +92,10 @@ export const CleanupSockerHandlers = (): SocketHandlerType[] => [
   {
     eventName: 'disconnecting',
     handler: handlerDisconnect
-  },
+  }
+];
+
+export const LeaveRoomHandlers = (): SocketHandlerType[] => [
   {
     eventName: 'leaveroom',
     handler: handlerDisconnect

@@ -45,7 +45,9 @@ class AMQPRPCServer extends AMQPEndpoint {
     await super.start();
 
     if (this._requestsQueue === '') {
-      const response = await this._channel.assertQueue('', { exclusive: true });
+      const response = await this._channel.assertQueue('', {
+        // exclusive: true
+      });
       this._requestsQueue = response.queue;
     }
 

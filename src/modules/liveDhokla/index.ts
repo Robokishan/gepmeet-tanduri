@@ -3,7 +3,7 @@ import { Server } from 'http';
 import { validateAccessToken } from '../../utils/AuthCheker';
 import {
   cleanupSocketsHandlers,
-  registerMediasoupHandlers
+  registerGenericHandlers
 } from '../../controllers/SocketHandler';
 
 import { SocketRPCType } from '../../utils/types';
@@ -26,7 +26,7 @@ const TanduriSocket = (
   });
 
   io.on('connection', (socket: SocketRPCType) => {
-    registerMediasoupHandlers(socket);
+    registerGenericHandlers(socket);
     cleanupSocketsHandlers(socket);
   });
 };

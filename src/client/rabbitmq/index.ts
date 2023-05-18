@@ -1,15 +1,17 @@
 import amqp, { Channel, Connection } from 'amqplib';
 import config from '../../config/config';
+import { startRPCClient } from '../../modules/rpc';
+import RpcClient from '../../modules/rpc/api';
 // import { startRPCServer } from '../../modules/rpc';
 import Logger from '../../utils/logger';
-import { createExchanges } from './exchanges';
-import { createQueues } from './queues';
+import { createExchanges, createQueues } from './utils';
 
 const log = new Logger();
 const retryInterval = 5000;
 
 let rabbitMQConnection: Connection = null;
 let rabbitMQChannel: Channel = null;
+let rpcClient: RpcClient;
 const startRabbit = async () => {
   return new Promise((resolve, _reject) => {
     log.info('Rabbitmq Connecting');
@@ -32,6 +34,7 @@ const startRabbit = async () => {
         rabbitMQChannel = await conn.createChannel();
         await createQueues(rabbitMQChannel);
         await createExchanges(rabbitMQChannel);
+        rpcClient = await startRPCClient(conn);
         resolve(conn);
       })
       .catch((err) => {
@@ -46,4 +49,4 @@ const startRabbit = async () => {
   });
 };
 
-export { rabbitMQConnection, startRabbit, rabbitMQChannel };
+export { rabbitMQConnection, startRabbit, rabbitMQChannel, rpcClient };

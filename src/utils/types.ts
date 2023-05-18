@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io';
-import AMQPRPCClient from '../modules/rpc/amqp-rpc/AMQPRPCClient';
+import RpcClient from '../modules/rpc/api';
 
 export enum MediaSoupSocket {
   consumeUser = 'consumeUser',
@@ -17,6 +17,14 @@ export enum MediaSoupSocket {
   connectConsumerTransport = 'connectConsumerTransport'
 }
 
+export enum UserState {
+  JOINED = 'JOINED',
+  DISCONNECTED = 'DISCONNECTED',
+  JOINING = 'JOININIG',
+  ERROR = 'ERROR'
+}
+
 export interface SocketRPCType extends Socket {
-  rpcClient?: AMQPRPCClient;
+  rpcClient?: RpcClient;
+  userState?: UserState;
 }

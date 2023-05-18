@@ -9,15 +9,30 @@ import {
   getSessionData,
   saveSessiondata
 } from '../../../modules/liveDhokla/dhoklaStore';
-import { MediaSoupSocket, SocketRPCType } from '../../../utils/types';
-import { startRPCClient } from '../../../modules/rpc';
+import {
+  MediaSoupSocket,
+  SocketRPCType,
+  UserState
+} from '../../../utils/types';
+
 import { MediaSoupCommand } from '../../../modules/rpc/handler';
-import { startRoomSubscribers } from '../../../modules/subscribers';
 import { em } from '../../../modules/orm';
 import { User } from '../../../entities/User';
 import { SessionDataType } from '../../../modules/liveDhokla/dhoklaStore/types';
+import { rpcClient } from '../../../client/rabbitmq';
+import {
+  cleanupRoomHandler,
+  registerMediasoupHandlers,
+  removeRoomEvents
+} from '..';
 
 let last_selected_worker = 0;
+const USER_ERROR = 'USER NOT ALLOWED';
+const something_went_wrong = 'something went wrong';
+
+// function onError(this: SocketRPCType) {
+//   this.userState = UserState.ERROR;
+// }
 
 export async function startNegotiationHandler(
   this: SocketRPCType,
@@ -45,7 +60,7 @@ export async function startNegotiationHandler(
   const user = await em.getRepository(User);
   const me = await user.findOne({ id: _data.userId });
 
-  this.rpcClient = await startRPCClient(`panchayat:handshake:${worker}`);
+  this.userState = UserState.JOINING;
   const sessionData: SessionDataType = {
     workerId: worker,
     roomId: _data.roomId,
@@ -54,12 +69,15 @@ export async function startNegotiationHandler(
   };
   await saveSessiondata(this.id, sessionData);
 
-  this.rpcClient.sendCommand(MediaSoupCommand.joinRoom, [sessionData]);
+  rpcClient.sendCommand(MediaSoupCommand.joinRoom, sessionData.workerId, [
+    sessionData
+  ]);
 
-  // wrong logic because of multiple users in same room
-  await startRoomSubscribers(_data.roomId);
   // emit to mediasoup socket that room has been assigned so that transport can be created
   this.emit(MediaSoupSocket.roomAssigned);
+  this.userState = UserState.JOINED;
+  registerMediasoupHandlers(this);
+  cleanupRoomHandler(this);
 }
 
 export async function getRTPCapabilitiesHandler(
@@ -72,11 +90,15 @@ export async function getRTPCapabilitiesHandler(
     sessionData.roomId,
     sessionData.userId
   );
-  if (!worker) callback({ msg: 'no worker found' });
-  else {
-    const res = await this.rpcClient.sendCommand(
-      MediaSoupCommand.getRouterRtpCapabilities
+  if (!worker) {
+    callback({ msg: 'no worker found' });
+    this.userState = UserState.ERROR;
+  } else {
+    const res = await rpcClient.sendCommand(
+      MediaSoupCommand.getRouterRtpCapabilities,
+      sessionData.workerId
     );
+
     callback(res);
   }
 }
@@ -86,15 +108,21 @@ export async function createProducerTransportHandler(
   _data: any,
   callback: any
 ) {
+  if (this.userState === UserState.ERROR) {
+    callback(USER_ERROR);
+    return;
+  }
   const sessionData = await getSessionData(this.id);
   try {
-    const transportParams = await this.rpcClient.sendCommand(
+    const transportParams = await rpcClient.sendCommand(
       MediaSoupCommand.createProducerTransport,
+      sessionData.workerId,
       [sessionData]
-    ); //get transport params from voice server
+    );
+    //get transport params from voice server
     callback(transportParams);
   } catch (error) {
-    callback('Something went wrong');
+    callback(something_went_wrong);
   }
 }
 
@@ -103,12 +131,18 @@ export async function connectProducerTransportHandler(
   _data: any,
   callback: any
 ) {
+  if (this.userState === UserState.ERROR) {
+    callback(USER_ERROR);
+    return;
+  }
   const sessionData = await getSessionData(this.id);
   const { dtlsParameters } = _data;
-  const connectProducerResponse = await this.rpcClient.sendCommand(
+  const connectProducerResponse = await rpcClient.sendCommand(
     MediaSoupCommand.connectProducerTransport,
+    sessionData.workerId,
     [{ dtlsParameters, sessionData }]
   );
+
   callback(connectProducerResponse);
   this.join(sessionData.roomId);
   this.to(sessionData.roomId).emit('notifyuserentered', {
@@ -121,19 +155,28 @@ export async function mediaproduceHandler(
   _data: any,
   callback: any
 ) {
+  if (this.userState === UserState.ERROR) {
+    callback(USER_ERROR);
+    return;
+  }
   const sessionData = await getSessionData(this.id);
-  const producerResponse: any = await this.rpcClient.sendCommand(
+  const producerResponse: any = await rpcClient.sendCommand(
     MediaSoupCommand.produce,
+    sessionData.workerId,
     [{ sessionData, produceMeta: _data }]
   );
-  callback(producerResponse);
 
-  this.to(sessionData.roomId).emit('newuserjoin', {
-    roomId: sessionData.roomId,
-    userId: sessionData.userId,
-    name: sessionData.name,
-    producerId: producerResponse.id
-  });
+  if (producerResponse?.id) {
+    callback(producerResponse);
+    this.to(sessionData.roomId).emit('newuserjoin', {
+      roomId: sessionData.roomId,
+      userId: sessionData.userId,
+      name: sessionData.name,
+      producerId: producerResponse.id
+    });
+  } else {
+    callback(something_went_wrong);
+  }
 }
 
 export async function createConsumerTransportHandler(
@@ -141,15 +184,21 @@ export async function createConsumerTransportHandler(
   _data: any,
   callback: any
 ) {
+  if (this.userState === UserState.ERROR) {
+    callback(USER_ERROR);
+    return;
+  }
   const sessionData = await getSessionData(this.id);
   try {
-    const transportParams = await this.rpcClient.sendCommand(
+    const transportParams = await rpcClient.sendCommand(
       MediaSoupCommand.createConsumerTransport,
+      sessionData.workerId,
       [sessionData]
-    ); //get transport params from voice server
+    );
+    //get transport params from voice server
     callback(transportParams);
   } catch (error) {
-    callback('Something went wrong');
+    callback(something_went_wrong);
   }
 }
 
@@ -158,12 +207,18 @@ export async function connectConsumerTransportHandler(
   _data: any,
   callback: any
 ) {
+  if (this.userState === UserState.ERROR) {
+    callback(USER_ERROR);
+    return;
+  }
   const sessionData = await getSessionData(this.id);
   const { dtlsParameters } = _data;
-  const connectConsumerResponse = await this.rpcClient.sendCommand(
+  const connectConsumerResponse = await rpcClient.sendCommand(
     MediaSoupCommand.connectConsumerTransport,
+    sessionData.workerId,
     [{ dtlsParameters, sessionData }]
   );
+
   callback(connectConsumerResponse);
 }
 
@@ -172,12 +227,18 @@ export async function mediaconsumeHandler(
   _data: any,
   callback: any
 ) {
+  if (this.userState === UserState.ERROR) {
+    callback(USER_ERROR);
+    return;
+  }
   const sessionData = await getSessionData(this.id);
   const { rtpCapabilities } = _data;
-  const mediaConsumerResponse = await this.rpcClient.sendCommand(
+  const mediaConsumerResponse = await rpcClient.sendCommand(
     MediaSoupCommand.consume,
+    sessionData.workerId,
     [{ rtpCapabilities, sessionData }]
   );
+
   callback(mediaConsumerResponse);
 }
 
@@ -186,13 +247,18 @@ export async function mediaUserConsumeHandler(
   _data: any,
   callback: any
 ) {
+  if (this.userState === UserState.ERROR) {
+    callback(USER_ERROR);
+    return;
+  }
   const sessionData = await getSessionData(this.id);
   const { rtpCapabilities } = _data;
   if (!_data.userId) throw new Error('Please provide userId');
   if (!(_data?.producerIds.length > 0))
     throw new Error('Please provide producerId');
-  const mediaConsumerResponse = await this.rpcClient.sendCommand(
+  const mediaConsumerResponse = await rpcClient.sendCommand(
     MediaSoupCommand.consumeUser,
+    sessionData.workerId,
     [
       {
         rtpCapabilities,
@@ -202,6 +268,7 @@ export async function mediaUserConsumeHandler(
       }
     ]
   );
+
   callback(mediaConsumerResponse);
 }
 
@@ -222,7 +289,6 @@ export async function roomOnUserDrag(
 
 export async function handlerDisconnect(this: SocketRPCType, err: unknown) {
   //  disconnect and cleanup function should be more clear
-
   const sessionData = await getSessionData(this.id);
 
   if (sessionData) {
@@ -242,26 +308,21 @@ export async function handlerDisconnect(this: SocketRPCType, err: unknown) {
           worker,
           sessionData.userId
         ); //delete room details
-        if (this.rpcClient) {
+        if (rpcClient) {
           try {
-            await this.rpcClient.sendCommand(MediaSoupCommand.disconnect, [
-              { sessionData }
-            ]);
+            await rpcClient.sendCommand(
+              MediaSoupCommand.disconnect,
+              sessionData.workerId,
+              [{ sessionData }]
+            );
           } catch (_err) {
             //error because of something related to rpc rabbitmq
           }
         }
       }
     }
-    if (this.rpcClient) {
-      try {
-        await this.rpcClient.disconnect(); //disconnect rpc client
-      } catch (_err) {
-        //error because of something related to rpc rabbitmq
-      } finally {
-        this.rpcClient = null;
-      }
-    }
+    this.userState = UserState.JOINING;
+    removeRoomEvents(this); //remove all listeners
     deleteSessionData(this.id); //remove session data
   }
 }
