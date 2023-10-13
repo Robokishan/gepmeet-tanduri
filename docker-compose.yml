@@ -50,7 +50,7 @@ services:
     environment:
       - PORT=8080
       - JWT_SECRET=string
-      - MONGODB_URL=mongodb+srv://quadx:***REMOVED***@tanduriocean.dkglu.mongodb.net/myFirstDatabase?retryWrites=true&w=majority
+      - MONGODB_URL=mongodb+srv://quadx:abcd@test.net/gepmeetdatabase?retryWrites=true&w=majority
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - RABITMQ_URL=amqp://admin:admin@rabbitmq
